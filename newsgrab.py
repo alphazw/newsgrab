@@ -40,23 +40,28 @@ def get_newslist(indexpage_url, rule_url):
     indexcontent = get_indexpage(indexpage_url)
     indexpage = BeautifulSoup(indexcontent,'lxml')
     p= indexpage.select(rule_url)
-    # p = re.compile(rule_url, re.S)
-    #alllist = re.findall(p, indexpage)
 
     return p
 
-def trans2list(par):
-    a = []
+def get_href(par):
+    tmp_a = []
     for b in par:
-        a.append(b['href'])
+        tmp_a.append(b['href'])
 
-    return a
+    return tmp_a
 
 def test_irecycler():
     url = r"http://www.irecyclingtimes.com/News-list?news_column_id=16_8_9_11_5_17_7_12"
     rule_url = r"table#news_list_tb a"
 
-    print trans2list(get_newslist(url,rule_url))
+    print get_href(get_newslist(url,rule_url))
+
+def test_actionintell():
+    url = "http://www.action-intell.com/category/news-briefing/"
+    rule_url="h1.entry-title a"
+
+    print get_href(get_newslist(url, rule_url))
 
 if __name__ == "__main__":
-    test_irecycler()
+    # test_irecycler()
+    # test_actionintell()
