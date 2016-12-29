@@ -1,9 +1,9 @@
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
-import requests, re
+import requests, re, sqlite3
 import datetime
 RuleFN = 'rulelist.xlsx'
-
+RuleDB = 'data.db'
 #Build file name with today's date
 def get_todayFN():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
@@ -78,9 +78,22 @@ if __name__ == "__main__":
     # url.append([r'http://www.theimagingchannel.com/channel-news','h3 a'])
     # url.append([r'http://www.therecycler.com/latest-news/','h2 a'])
     # url.append(['http://tonernews.com/forums/forum/industry-news/','li.bbp-body ul li.bbp-topic-title a.'])
-    url.append(['http://www.rechargeasia.com/index.php/Table/News/3D-Printing/','ul.list_ulList_1 li a'])
-    print url
-    a=[]
-    for u in url:
-        a =a + get_href(get_newslist(u[0],u[1]))
-    print a
+    # url.append(['http://www.rechargeasia.com/index.php/Table/News/3D-Printing/','ul.list_ulList_1 li a'])
+    # print url
+    # a=[]
+    # for u in url:
+    #     a =a + get_href(get_newslist(u[0],u[1]))
+    # print a
+    try:
+        conn = sqlite3.connect('data.db')
+        cur = conn.cursor()
+        sitelistsql = 'select * from sitelist where enable <> false'
+        cur.execute(sitelistsql)
+        sitelist = cur.fetchall()
+
+    except sqlite3.Error as e:
+        print e
+    finally:
+        cur.close()
+        conn.close()
+        print conn
