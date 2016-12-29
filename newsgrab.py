@@ -1,12 +1,21 @@
 from openpyxl import load_workbook
 from bs4 import BeautifulSoup
-import requests, re, sqlite3
+import requests, re, sqlite3, hashlib
 import datetime
+
 RuleFN = 'rulelist.xlsx'
 RuleDB = 'data.db'
+
 #Build file name with today's date
 def get_todayFN():
     return datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+
+#generate hash
+def generate_hash(text=none):
+    if text:
+        return ""
+    else
+        return hashlib.sha256(text).hexdigit()
 
 #get the rule list from a given excel workbook, return the value of the value into a dict
 def get_rulelist(FN):
@@ -34,6 +43,34 @@ def get_newslist(indexpage_url, rule_url):
     indexpage = BeautifulSoup(indexcontent,'lxml')
     result= indexpage.select(rule_url)
     return result
+
+def get_article(pageurl, rule_title, rule_content, rule_click, rule_date):
+    indexcontent = get_indexpage(indexpage_url)
+    indexpage = BeautifulSoup(indexcontent,'lxml')
+
+    article_title= indexpage.select(rule_title)
+    article_content = indexpage.select(rule_content)
+    article_click = indexpage.select(rule_click)
+    article_date = indexpage.select(rule_date)
+
+    return article_title, article_content, article_click, article_date
+
+
+def save_newslist2db(newslist):
+    try:
+        conn = sqlite3.connect(RuleDB)
+        cur = conn.cursor()
+        sql = ''
+
+        for nl in newslist:
+            if not cur.execute('select * from newslist where hash = ' & generate_hash(nl)):
+                cur.execute('insert newslist value()')
+    except Exception, e:
+        raise
+    else:
+        pass
+    finally:
+        conn.close()
 
 #get href attribution from the given result in a list for <a href=...></a>
 def get_href(par):
@@ -87,9 +124,22 @@ if __name__ == "__main__":
     try:
         conn = sqlite3.connect('data.db')
         cur = conn.cursor()
-        sitelistsql = 'select * from sitelist where enable <> false'
+        sitelistsql = 'select * from sitelist' 
+        # sitelistsql = 'select * from sitelist where enable <> false'
         cur.execute(sitelistsql)
         sitelist = cur.fetchall()
+
+        urls = []
+        for u in sitelist:
+            urls.append([u[2],u[3]])
+
+        result = []
+        for url in urls:
+            result = result + get_href(get_newslist(url[0],url[1]))
+
+        print result
+
+        result = []
 
     except sqlite3.Error as e:
         print e
