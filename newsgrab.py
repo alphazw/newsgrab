@@ -174,8 +174,41 @@ def retrieveNews():
 
     return True
 
+def duplicatecheck(hash):
+    sql_duplicatecheck = "SELECT * FROM newslist WHERE hash=%s"
+    conn.executive(sql_duplicatecheck,hash)
+    if conn.fetchall() == None:
+        return True
+    else:
+        return False
+
+def get_newscontent(newsurl, at_rule, ac_rule, ad_rule, ack_rule):
+    sql_newscontent = "INSERT INTO newscontent (articletitle, articlecontent,  articleclicks, articledate, hash, adddate) VALUES(%s, %s, %s, %s, %s, %s)"
+    newscontent = get_article(newsurl, at_rule,ac_rule, ack_rule, ad_rule)
+    hash, adddate = generate_hash(newsurl), datetime.datetime.now().date()
+
+    conn.executive(sql_newscontent,(newscontent, hash, adddate))
+
+
 #build reports from the content in the database by selecting by today()
 def buildReport():
+    sql_report = "SELECT articletitle, articlecontent, articleclick, articledate FROM newscontent WHERE adddate = %s"
+    adddate = datetime.datetime.now().date()
+
+    conn.executive(sql_report,adddate)
+    contentlist = conn.fetchall()
+
+    for cl in contentlist:
+        cl_articletitle, cl_articlecontent, cl_articleclick, cl_articledate = cl[0],cl[1],cl[2],cl[3],c[4]
+
+        log(cl_articleclick)
+        log(cl_articlecontent)
+        log(cl_articleclick)
+        log(cl_articledate)
+
+    return True
+
+def sendemail(emaillist, content):
     return True
 
 def test_irecycler():
