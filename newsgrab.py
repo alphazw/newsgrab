@@ -5,6 +5,11 @@ import datetime
 
 RuleFN = 'rulelist.xlsx'
 RuleDB = 'data.db'
+DEBUG = True
+
+def log(s):
+    if DEBUG:
+        print s
 
 #Build file name with today's date
 def get_todayFN():
@@ -12,10 +17,7 @@ def get_todayFN():
 
 #generate hash
 def generate_hash(text=""):
-    if text:
-        return ""
-    else:
-        return hashlib.sha256(text).hexdigit()
+    return hashlib.sha256(text).hexdigest()
 
 #get the rule list from a given excel workbook, return the value of the value into a dict
 def get_rulelist(FN):
@@ -55,23 +57,6 @@ def get_article(pageurl, rule_title, rule_content, rule_click, rule_date):
 
     return article_title, article_content, article_click, article_date
 
-
-# def save_newslist2db(newslist):
-#     try:
-#         conn = sqlite3.connect(RuleDB)
-#         cur = conn.cursor()
-#         sql = ''
-#
-#         for nl in newslist:
-#             if not cur.execute('select * from newslist where hash = ' & generate_hash(nl)):
-#                 cur.execute('insert newslist value()')
-#     except Exception, e:
-#         raise
-#     else:
-#         pass
-#     finally:
-#         conn.close()
-
 #get href attribution from the given result in a list for <a href=...></a>
 def get_href(par):
     tmp_a = []
@@ -86,7 +71,7 @@ def completeurl(base, url):
 
     if not base.endswith('/'): base = base+'/'
 
-    if not url.startswith('base'):
+    if not url.startswith(base):
         if url.startswith('/'):
             return base+url[1:]
         else:
@@ -98,47 +83,54 @@ def retrieveNewlist():
     try:
         conn = sqlite3.connect('data.db')
         cur = conn.cursor()
-        sitelistsql = 'select * from sitelist'
-        # sitelistsql = 'select * from sitelist where enable <> false'
-        cur.execute(sitelistsql)
+        sql_sitelist = 'SELECT name,baseurl,listpageurl, listpageurl_rule, sitelist_id, articletiel_rule, articlecontent_rule, articleclick_rule, articledate_rule FROM sitelist'
+        cur.execute(sql_sitelist)
         sitelist = cur.fetchall()
 
-        urls = []
         for u in sitelist:
-            urls.append([u[2],u[3]])
+            u_name, u_baseurl, u_listpageurl, u_listpageurl_rule, u_sitelist_id, u_articletitle_rule, u_articlecontent_rule, u_articleclicks_rule, u_articledate_rule = u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8]
+            url_newslist = get_href(get_newslist(u_listpageurl,u_listpageurl_rule))
+            # log("_"*20)
+            # log('Retrieving NewsList from ')
+            # log(u_name)
+            # log(u_sitelist_id)
+            # log(u_baseurl)
+            # log(u_listpageurl)
+            # log(u_listpageurl_rule)
+            # log("-"*20)
+            for u_n in url_newslist:
+                u_n = completeurl(u_baseurl, u_n)
+                u_hash = generate_hash(u_n)
 
-
-        result = []
-        for url in urls:
-            result = result + get_href(get_newslist(url[0],url[1]))
-            print 'retrieving newslist from '.url[0]
-
-        print "Printing News List"
-        print result
+                if not duplicatecheck(u_hash):
+                    sql_newslist = "INSERT INTO newslist (newsurl, sitelist_id, hash, adddate, articletiel_rule, articlecontent_rule, articleclick_rule, articledate_rule ) VALUES (%s,%s,%s,%s.%s,%s,%s)"
+                    conn.execute(sql_newslist,(u_articletitle_rule, u_articlecontent_rule, u_articleclicks_rule, u_articledate_rule))
+                # log(u_n)
+                # log(generate_hash(u_n))
 
         #write result to database
-        for r in result:
-
-            r_hash = generate_hash(r)
-            duplicatechecksql = "SELECT * FROM newslist WHERE hash = ".r_hash
-            cur.execute(duplicatechecksql)
-            checkresult = cur.fetchall()
-
-            if checkresult == "":
-                insertsql = "INSERT INTO newslist (url, date, hash) VALUES (%s,%s, %s)".(r,datetime.datetime.date(), r_hash)
-                # cur = conn.cursor()
-                cur.execute(insertsql)
-
-        result = []
-        # print urls
-
+        # for r in result:
+        #
+        #     r_hash = generate_hash(r)
+        #     log("hash %s",r_hash)
+        #     duplicatechecksql = "SELECT * FROM newslist WHERE hash = %s"
+        #     cur.execute(duplicatechecksql,r_hash)
+        #     checkresult = cur.fetchall()
+        #
+        #     if checkresult == "":
+        #         insertsql = "INSERT INTO newslist (newsurl, adddate, hash) VALUES (%s,%s, %s)"
+        #         # cur = conn.cursor()
+        #         cur.execute(insertsql,(r,datetime.datetime.date(), r_hash))
+        #     log(r)
+        # # result = []
+        # log(urls)
     except sqlite3.Error as e:
-        print e
+        log(e)
 
     finally:
         cur.close()
         conn.close()
-        print "database closed"
+        log("Database Closed")
 
     return True
 
@@ -159,9 +151,8 @@ def retrieveNews():
             news_date = ""
             adddate = datetime.datetime.strftime('Y-M-D')
             u_hash = generate_hash(u)
-            insertsql = "INSERT INTO newscontent (title, content, clicks, newsdate, adddate, hash) VALUES(%s, %s, %s, %s, %s, %s )"_
-                        .(news_title, news_content, news_clicks, news_date, adddate, u_hash)
-            cur.execute(insertsql)
+            insertsql = "INSERT INTO content (title, content, clicks, date, adddate, hash) VALUES(%s, %s, %s, %s, %s, %s )"
+            cur.execute(insertsql,(news_title, news_content, news_clicks, news_date, adddate, u_hash))
 
 
     except sqlite3.Error as e:
@@ -238,3 +229,5 @@ if __name__ == "__main__":
     # for u in url:
     #     a =a + get_href(get_newslist(u[0],u[1]))
     # print a
+    retrieveNewlist()
+    
