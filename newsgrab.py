@@ -1,6 +1,6 @@
-from openpyxl import load_workbook
 from bs4 import BeautifulSoup
-import requests, re, sqlite3, hashlib
+import requests
+import sqlite3, hashlib
 import datetime, smtplib, email
 
 DBFile = '/Users/Mavericks/Documents/newsgrab/data.db'
@@ -14,9 +14,14 @@ def log(s):
 def generate_hash(text=""):
     return hashlib.sha256(text).hexdigest()
 
-def get_indexpage(url):
-    header = {'Accept-Language':'zh-CN,zh;q=0.8','User-Agent':'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36','Connection':'close','Referer': 'https://www.baidu.com/'}
-    indexpage =  requests.get(url,headers=header)
+def get_indexpage(indexpageurl):
+    header = {'Accept-Language':'zh-CN,zh;q=0.8',
+              'User-Agent':'Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36',
+              'Connection':'close',
+              'Referer': 'https://www.baidu.com/'}
+    # indexpage =requests.get(url=url,headers=header)
+    indexpage = requests.get(indexpageurl,headers=header)
+    # log(indexpage.content)
     return indexpage.content
 
 #get a newslist from the listpage by applying the rule_url
@@ -63,14 +68,16 @@ def retrieveNewlist():
     try:
         conn = sqlite3.connect(DBFile)
         cur = conn.cursor()
-        sql_sitelist = 'SELECT name, baseurl,listpageurl, listpageurl_rule, sitelist_id, articletitle_rule, articlecontent_rule, articleclick_rule, articledate_rule FROM sitelist'
+        sql_sitelist = "SELECT name, baseurl,listpageurl, listpageurl_rule, sitelist_id, articletitle_rule, articlecontent_rule, articleclick_rule, articledate_rule FROM sitelist WHERE enable = 'True'"
         # sql_sitelist = "select * from sitelist"
         cur.execute(sql_sitelist)
         sitelist = cur.fetchall()
-
+        # log(sitelist)
         for u in sitelist:
-            u_name, u_baseurl, u_listpageurl, u_listpageurl_rule, u_sitelist_id, u_articletitle_rule, u_articlecontent_rule, u_articleclick_rule, u_articledate_rule = u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8]
+            (u_name, u_baseurl, u_listpageurl, u_listpageurl_rule, u_sitelist_id, u_articletitle_rule, u_articlecontent_rule, u_articleclick_rule, u_articledate_rule) = (u[0], u[1], u[2], u[3], u[4], u[5], u[6], u[7], u[8])
+            #to-do: need to check the rule if its worked first.
             url_newslist = get_href(get_newslist(u_listpageurl,u_listpageurl_rule))
+
             # log("_"*20)
             # log('Retrieving NewsList from ')
             # log(u_name)
